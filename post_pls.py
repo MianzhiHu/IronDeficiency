@@ -8,8 +8,7 @@ from statsmodels.stats.multitest import multipletests
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import pearsonr
-from preprocessing import psych_without_neuro, psychopathology, neuro_mean_df, iron, variables_of_interest
-from efa import transformed_data
+from preprocessing import psychopathology_male, neuro_male, iron_male, variables_of_interest, myelin_male, QSM_male
 
 # add path to the PLS results
 result_dir = os.path.abspath('C:/Users/zuire/OneDrive/桌面/胡勉之/Texas A&M University/IronDeficiency/MATLAB/Result')
@@ -17,12 +16,8 @@ sys.path.append(result_dir)
 
 # read original data
 data = pd.read_csv('./Data/cleaned_data.csv')
-CBCL_bi = pd.read_csv('./Data/PLS_Data/CBCL_bi.csv')
 
 print(pearsonr(data['Ferritin_ngperml'], data['Hemoccue_Hb']))
-print(pearsonr(data['PARS_AnxSymptCt'], data['l_Pu_mean']))
-mean_brain = neuro_mean_df.mean(axis=1)
-print(pearsonr(data['PARS_AnxSymptCt'], mean_brain))
 
 
 def get_pls_results(lv_path, boot_ratio_path, original_df, method='fdr_bh', p=.05):
@@ -65,50 +60,60 @@ def get_pls_results(lv_path, boot_ratio_path, original_df, method='fdr_bh', p=.0
 
 
 # get the results
-# group_results = get_pls_results('./Data/PLS_Results/PLS_outputTaskPLSGroupBased_without_neuro_lv_vals.mat',
-#                                 './Data/PLS_Results/PLS_outputTaskPLSGroupBased_without_neuro.mat',
-#                                 psych_without_neuro)
 neuro_iron_results = get_pls_results('PLS_Behav_neuro~iron_lv_vals.mat',
                                      'PLS_Behav_neuro~iron.mat',
-                                     iron)
-psychopathology_iron_results = get_pls_results('PLS_Behav_psychopathology~iron_lv_vals.mat',
-                                               'PLS_Behav_psychopathology~iron.mat',
-                                               iron)
-cognition_iron_results = get_pls_results('PLS_Behav_cognition~iron_lv_vals.mat',
-                                         'PLS_Behav_cognition~iron.mat',
-                                         iron)
-psychopathology_neuro_results = get_pls_results('PLS_Behav_psychopathology~neuro_lv_vals.mat',
-                                                 'PLS_Behav_psychopathology~neuro.mat',
-                                                 neuro_mean_df)
-cognition_neuro_results = get_pls_results('PLS_Behav_cognition~neuro_lv_vals.mat',
-                                          'PLS_Behav_cognition~neuro.mat',
-                                          neuro_mean_df)
-cognition_psychopathology_results = get_pls_results('PLS_Behav_cognition~psychopathology_lv_vals.mat',
-                                                        'PLS_Behav_cognition~psychopathology.mat',
-                                                        psychopathology)
-cognition_CBCL_bi_results = get_pls_results('PLS_Behav_cognition~CBCL_bi_lv_vals.mat',
-                                             'PLS_Behav_cognition~CBCL_bi.mat',
-                                             CBCL_bi)
+                                     iron_male)
 
-# # pls from R
-# pls_result_path = './Data/PLS_Results/PLS_results_hsCRP.csv'
-# pls = pd.read_csv(pls_result_path)
-#
-# # plotting
-# x_labels = ['Control', 'Psychiatric']
-# plt.figure()
-# sns.barplot(x='Group', y='Comp2', data=pls, estimator='mean', errorbar='se')
-# plt.ylabel('Group Score')
-# plt.xticks(ticks=[0, 1], labels=x_labels)
-# plt.title('PLS Significant Latent Variable')
-# sns.despine()
-# plt.show()
-#
-# # plot the line graph
-# plt.figure()
-# sns.lineplot(x='Ferritin_ngperml', y='Comp2', data=pls)
-# plt.ylabel('Group Score')
-# plt.title('PLS Significant Latent Variable')
-# sns.despine()
-# plt.show()
+neuro_iron_all_results = get_pls_results('PLS_Behav_neuro_all~iron_lv_vals.mat',
+                                            'PLS_Behav_neuro_all~iron.mat',
+                                            iron_male)
+
+QSM_iron_results = get_pls_results('PLS_Behav_QSM~iron_lv_vals.mat',
+                                      'PLS_Behav_QSM~iron.mat',
+                                   iron_male)
+
+QSM_iron_all_results = get_pls_results('PLS_Behav_QSM_all~iron_lv_vals.mat',
+                                            'PLS_Behav_QSM_all~iron.mat',
+                                       iron_male)
+
+psychopathology_neuro_results = get_pls_results('PLS_Behav_psychopathology~neuro_lv_vals.mat',
+                                                    'PLS_Behav_psychopathology~neuro.mat',
+                                                neuro_male)
+
+psychopathology_QSM_results = get_pls_results('PLS_Behav_psychopathology~QSM_lv_vals.mat',
+                                                'PLS_Behav_psychopathology~QSM.mat',
+                                              QSM_male)
+
+cogsummary_iron_results = get_pls_results('PLS_Behav_cogsummary~iron_lv_vals.mat',
+                                            'PLS_Behav_cogsummary~iron.mat',
+                                            iron_male)
+
+cogsummary_neuro_results = get_pls_results('PLS_Behav_cogsummary~neuro_lv_vals.mat',
+                                            'PLS_Behav_cogsummary~neuro.mat',
+                                            neuro_male)
+
+cogsummary_QSM_results = get_pls_results('PLS_Behav_cogsummary~QSM_lv_vals.mat',
+                                            'PLS_Behav_cogsummary~QSM.mat',
+                                            QSM_male)
+
+cogsummary_psychopathology_results = get_pls_results('PLS_Behav_cogsummary~psychopathology_lv_vals.mat',
+                                                        'PLS_Behav_cogsummary~psychopathology.mat',
+                                                        psychopathology_male)
+
+cogsummary_myelin_results = get_pls_results('PLS_Behav_cogsummary~myelin_lv_vals.mat',
+                                            'PLS_Behav_cogsummary~myelin.mat',
+                                            myelin_male)
+
+
+# plot the results
+sns.set_theme(style='whitegrid')
+sns.set_context('talk')
+plt.figure(figsize=(15, 15))
+cogsummary_psychopathology_results['u1'] = cogsummary_psychopathology_results['u1'] * -1
+sns.barplot(x='u1', y='Variable', data=cogsummary_psychopathology_results, hue='significant')
+plt.xlabel('Correlation Strength')
+plt.ylabel('')
+plt.tight_layout()
+plt.savefig('./Figures/PLS_Cog_Psychopathology.png', dpi=1000)
+plt.show()
 

@@ -1,10 +1,12 @@
 # define some variables
 iron = ['Ferritin_ngperml', 'Hemoccue_Hb']
-neuro_all = ['r_Pu_mean', 'r_Pu_median', 'l_Pu_mean', 'l_Pu_median', 'r_Cd_mean',
-             'r_Cd_median', 'l_Cd_mean', 'l_Cd_median', 'r_GP_mean', 'r_GP_median', 'l_GP_mean', 'l_GP_median',
-             'Putamen', 'Caudate', 'Globus_Pallidus']
 
-neuro_mean = ['r_Pu_mean', 'l_Pu_mean', 'r_Cd_mean', 'l_Cd_mean', 'r_GP_mean', 'l_GP_mean']
+neuro = ['iron_l_Pu_mean', 'iron_r_Pu_mean', 'iron_l_Cd_mean', 'iron_r_Cd_mean', 'iron_l_GP_mean', 'iron_r_GP_mean']
+
+QSM = ['QSM_l_Pu_mean', 'QSM_r_Pu_mean', 'QSM_l_Cd_mean', 'QSM_r_Cd_mean', 'QSM_l_GP_mean', 'QSM_r_GP_mean']
+
+myelin = ['f_myelin_r_Pu_mean', 'f_myelin_l_Pu_mean', 'f_myelin_r_Cd_mean', 'f_myelin_l_Cd_mean',
+          'f_myelin_r_GP_mean', 'f_myelin_l_GP_mean']
 
 neuro_median = ['r_Pu_median', 'l_Pu_median', 'r_Cd_median', 'l_Cd_median', 'r_GP_median', 'l_GP_median']
 
@@ -12,21 +14,15 @@ neuro_combined = ['Putamen', 'Caudate', 'Globus_Pallidus']
 
 behavior = ['CPT_OMI_T', 'CPT_COM_T', 'CPT_HRT_T', 'CPT_VAR_T', 'CPT_DPR_T', 'CPT_C_T', 'CPT_PRS_T', 'CPT_BLKCH_T',
             'CPT_ISICH_T', 'CPT_HRTSD_T', 'WASI_Vocab_T_Score', 'WASI_Matrix_T_Score',
-            'RAVLT_ListA_Immed_Recall_Persev1', 'RAVLT_ListA_Immed_Recall_Persev2', 'RAVLT_ListA_Immed_Recall_Persev3',
-            'RAVLT_ListA_Immed_Recall_Persev4', 'RAVLT_ListA_Immed_Recall_Persev5', 'RAVLT_ListB_Immed_Recall_Persev',
-            'RAVLT_ListA_Delay_Recall_Persev1', 'RAVLT_ListA_Delay_Recall_Persev2', 'RAVLT_ListA_Immed_Recall_Intrus1',
-            'RAVLT_ListA_Immed_Recall_Intrus2', 'RAVLT_ListA_Immed_Recall_Intrus3', 'RAVLT_ListA_Immed_Recall_Intrus4',
-            'RAVLT_ListA_Immed_Recall_Intrus5', 'RAVLT_ListB_Immed_Recall_Intru', 'RAVLT_ListA_Delay_Recall_Intru1',
-            'RAVLT_ListA_Delay_Recall_Intru2', 'RAVLT_ListA_Immed_Recall_Trial1', 'RAVLT_ListA_Immed_Recall_Trial2',
-            'RAVLT_ListA_Immed_Recall_Trial3', 'RAVLT_ListA_Immed_Recall_Trial4', 'RAVLT_ListA_Immed_Recall_Trial5',
-            'RAVLT_ListB_Immed_Recall_Trial1', 'RAVLT_ListA_Delay_Recall_Trial1', 'RAVLT_ListA_Delay_Recall_Trial2',
-            'RAVLT_ListA_RecallDelay_Trial2', 'Stroop_WordColor_WordRead', 'Stroop_WordColor_ColorRecognized',
+            'RAVLT_Immed_Recall_Trial', 'RAVLT_Delay_Recall_Persev', 'RAVLT_Immed_Recall_Intrus',
+            'RAVLT_Delay_Recall_Intrus', 'RAVLT_Delay_Recall_Trial', 'RAVLT_Immed_Recall_Persev',
+            'Stroop_WordColor_WordRead', 'Stroop_WordColor_ColorRecognized',
             'Stroop_WordColor_InkRecognized', 'Trail_PartA_time', 'Trail_PartA_error_seq', 'TrailsB_Time',
-            'Trail_PartB_error_seq', 'Trail_PartB_error_set', 'Pegboard_RH_Time', 'Pegboard_RH_Dropped',
-            'Pegboard_RH_Total_Correct', 'Pegboard_LH_Time', 'Pegboard_LH_Dropped', 'Pegboard_LH_Total_Correct',
-            'RAVLT_ListA_Correct_Recognition', 'RAVLT_ListA_Intrusions_ListB', 'RAVLT_ListA_Semantic_Associates',
-            'RAVLT_ListB_Semantic_Associates', 'RAVLT_ListA_Phonemic_Associates', 'RAVLT_ListB_Phonemic_Associates',
-            'NEURO_DDT_kvalue', 'NEURO_DIGIT_ForwardScore', 'NEURO_DIGIT_BackwardScore', 'NEURO_DIGIT_SequencingScore']
+            'Trail_PartB_error_seq', 'Trail_PartB_error_set', 'Pegboard_Avg_Time', 'Pegboard_Avg_Dropped']
+
+add = ['RAVLT_ListA_Correct_Recognition', 'RAVLT_ListA_Intrusions_ListB', 'RAVLT_ListA_Semantic_Associates',
+       'RAVLT_ListB_Semantic_Associates', 'RAVLT_ListA_Phonemic_Associates', 'RAVLT_ListB_Phonemic_Associates',
+       'NEURO_DDT_kvalue', 'NEURO_DIGIT_ForwardScore', 'NEURO_DIGIT_BackwardScore', 'NEURO_DIGIT_SequencingScore']
 
 psychopathology = ['PARS_AnxSymptCt', 'PARS_AnxSymptFreq', 'PARS_AnxSeverity', 'PARS_AnxPhysSymptSeverity',
                    'PARS_AnxEventAvoid', 'PARS_InterfereFamHome', 'PARS_InterferePeerOutside', 'CDRSR_T_SCORE',

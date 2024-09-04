@@ -4,37 +4,27 @@ import ast
 import json
 import openpyxl
 from sklearn.preprocessing import StandardScaler
-from var_def import (iron, neuro_all, neuro_mean, neuro_median, neuro_combined, behavior, psychopathology)
+from var_def import (iron, neuro, neuro_median, neuro_combined, behavior, psychopathology, myelin, QSM)
+from utilities import is_highlighted, rename_columns, high_corr_checker
 
 # read xlsx file
-OSPAN = pd.read_csv('./Data/Original_Data/OSPAN_data_5.7.24.csv', header=1)
-data = pd.read_excel('./Data/Original_Data/CC_request_DrWorthy_05302024.xlsx')
-# workbook = openpyxl.load_workbook('./Data/Original_Data/CC_request_DrWorthy_DICTIONARY_05302024.xlsx')
-workbook = openpyxl.load_workbook('./Data/Original_Data/CC_request_DrWorthy_DICTIONARY_05302024 - Copy.xlsx')
+data = pd.read_excel('./Data/Original_Data/A&M_dataset.xlsx')
+workbook = openpyxl.load_workbook('./Data/Original_Data/dictionary.xlsx')
 sheet = workbook.active
-questionnaires = pd.read_excel('./Data/Original_Data/A&M_dataset.xlsx')
 questionnaires_dict = pd.read_excel('./Data/Original_Data/A&M_dataset_DICTIONARY.xlsx', sheet_name='Dataset_Dictionary')
 questionnaires_totals = pd.read_excel('./Data/Original_Data/A&M_dataset_DICTIONARY.xlsx', sheet_name='Scores')
-
-SGT = []
-
-with open('./Data/Original_Data/jatos_results_Pulled_4_10_24.txt', 'r') as file:
-    for line in file:
-        json_data = json.loads(line)
-        SGT.append(json_data)
-
-SGT = pd.DataFrame(SGT)
 
 choice = "else"
 
 # =============================================================================
 #                               Data Cleaning
 # =============================================================================
-# main data
 # filter out excluded participants
-data = data[data['Group'] != "Excluded"]
+excluded_iron = data[data['Group_Iron'] == "Excluded"]['Code']
+data = data[data['Group_Iron'] != "Excluded"]
 
 # also exlude the participants with high hsCRP
+excluded_hsCRP = data[data['High_hsCRP'] == 1]['Code']
 data = data[data['High_hsCRP'] != 1]
 
 # remove columns with too many missing values
@@ -51,40 +41,10 @@ data = data.drop(columns=drop_cols)
 data = data.replace(-999.0, np.nan)
 data = data.replace(-9999.0, np.nan)
 
-# # drop rows with missing values
-data = data.dropna()
-
-# =============================================================================
-# the following code is to select variables of interest
-# =============================================================================
-# average the left and right hemisphere volumes
-data['Putamen'] = (data['r_Pu_mean'] + data['l_Pu_mean']) / 2
-data['Caudate'] = (data['r_Cd_mean'] + data['l_Cd_mean']) / 2
-data['Globus_Pallidus'] = (data['r_GP_mean'] + data['l_GP_mean']) / 2
-
-# calculate the time difference between the two recall trials
-data['RAVLT_ListA_Delay_Recall_Time1'] = pd.to_datetime(data['RAVLT_ListA_Delay_Recall_Time1'])
-data['RAVLT_ListA_Delay_Recall_Time2'] = pd.to_datetime(data['RAVLT_ListA_Delay_Recall_Time2'])
-data['RAVLT_ListA_RecallDelay_Trial2'] = (data['RAVLT_ListA_Delay_Recall_Time2'] -
-                                          data['RAVLT_ListA_Delay_Recall_Time1']).dt.total_seconds() / 60
-
-# remove the two columns
-data = data.drop(columns=['RAVLT_ListA_Delay_Recall_Time1', 'RAVLT_ListA_Delay_Recall_Time2'])
-
-# update the dropped columns
-drop_cols.extend(['RAVLT_ListA_Delay_Recall_Time1', 'RAVLT_ListA_Delay_Recall_Time2'])
-
-
-# Function to check if a cell is highlighted
-def is_highlighted(cell):
-    if cell.fill.start_color.index == '00000000':
-        return False
-    return True
-
-
 # Iterate through the cells and find highlighted ones
 highlighted_cells = []
 reverse_cols = []
+median_cols = []
 
 for row in sheet.iter_rows():
     for cell in row:
@@ -98,154 +58,125 @@ for row in sheet.iter_rows(min_row=2):  # Start from the second row to skip head
             first_column_value = row[0].value  # Accessing the first column value in the same row
             if first_column_value is not None:
                 reverse_cols.append(first_column_value)
+        if cell.value == 'm':
+            first_column_value = row[0].value
+            if first_column_value is not None:
+                median_cols.append(first_column_value)
 
 # store the highlighted variables as variables of interest
 variables_of_interest = [cell.value for cell in highlighted_cells]
-additional_variables = ['Putamen', 'Caudate', 'Globus_Pallidus']
-variables_of_interest.extend(additional_variables)
 
 # if there are variables of interest that do not exist in the data, print and store them
 missing_vars = [var for var in variables_of_interest if var not in data.columns and var not in drop_cols]
 
 # select the variables of interest
 variables_of_interest = [var for var in variables_of_interest if var in data.columns]
-data = data[variables_of_interest]
+col_to_keep = variables_of_interest + neuro + myelin + QSM + psychopathology
+data = data[col_to_keep]
+
+# drop duplicated columns and record the dropped columns
+data = data.loc[:, ~data.columns.duplicated()]
+
+# =============================================================================
+# Transform behavioral data
+# =============================================================================
+# aggregate the immediate recall preservations
+data['RAVLT_Immed_Recall_Persev'] = data[['RAVLT_ListA_Immed_Recall_Persev1',
+                                                                'RAVLT_ListA_Immed_Recall_Persev2',
+                                                                'RAVLT_ListA_Immed_Recall_Persev3',
+                                                                'RAVLT_ListA_Immed_Recall_Persev4',
+                                                                'RAVLT_ListA_Immed_Recall_Persev5',
+                                                                'RAVLT_ListB_Immed_Recall_Persev']].sum(axis=1)
+data = data.drop(columns=['RAVLT_ListA_Immed_Recall_Persev1', 'RAVLT_ListA_Immed_Recall_Persev2',
+                                                'RAVLT_ListA_Immed_Recall_Persev3', 'RAVLT_ListA_Immed_Recall_Persev4',
+                                                'RAVLT_ListA_Immed_Recall_Persev5', 'RAVLT_ListB_Immed_Recall_Persev'])
+
+# aggregate the immediate recall intrusions
+data['RAVLT_Immed_Recall_Intrus'] = data[['RAVLT_ListA_Immed_Recall_Intrus1',
+                                                                'RAVLT_ListA_Immed_Recall_Intrus2',
+                                                                'RAVLT_ListA_Immed_Recall_Intrus3',
+                                                                'RAVLT_ListA_Immed_Recall_Intrus4',
+                                                                'RAVLT_ListA_Immed_Recall_Intrus5',
+                                                                'RAVLT_ListB_Immed_Recall_Intru']].sum(axis=1)
+data = data.drop(columns=['RAVLT_ListA_Immed_Recall_Intrus1', 'RAVLT_ListA_Immed_Recall_Intrus2',
+                                                'RAVLT_ListA_Immed_Recall_Intrus3', 'RAVLT_ListA_Immed_Recall_Intrus4',
+                                                'RAVLT_ListA_Immed_Recall_Intrus5', 'RAVLT_ListB_Immed_Recall_Intru'])
+
+# aggregate the immediate recall trials
+data['RAVLT_Immed_Recall_Trial'] = data[['RAVLT_ListA_Immed_Recall_Trial1',
+                                                               'RAVLT_ListA_Immed_Recall_Trial2',
+                                                               'RAVLT_ListA_Immed_Recall_Trial3',
+                                                               'RAVLT_ListA_Immed_Recall_Trial4',
+                                                               'RAVLT_ListA_Immed_Recall_Trial5',
+                                                               'RAVLT_ListB_Immed_Recall_Trial1']].sum(axis=1)
+data = data.drop(columns=['RAVLT_ListA_Immed_Recall_Trial1', 'RAVLT_ListA_Immed_Recall_Trial2',
+                                                'RAVLT_ListA_Immed_Recall_Trial3', 'RAVLT_ListA_Immed_Recall_Trial4',
+                                                'RAVLT_ListA_Immed_Recall_Trial5', 'RAVLT_ListB_Immed_Recall_Trial1'])
+
+# aggregate the delayed recall perseverations
+data['RAVLT_Delay_Recall_Persev'] = data[['RAVLT_ListA_Delay_Recall_Persev1',
+                                                                'RAVLT_ListA_Delay_Recall_Persev2']].sum(axis=1)
+data = data.drop(columns=['RAVLT_ListA_Delay_Recall_Persev1', 'RAVLT_ListA_Delay_Recall_Persev2'])
+
+# aggregate the delayed recall intrusions
+data['RAVLT_Delay_Recall_Intrus'] = data[['RAVLT_ListA_Delay_Recall_Intru1',
+                                                                'RAVLT_ListA_Delay_Recall_Intru2']].sum(axis=1)
+data = data.drop(columns=['RAVLT_ListA_Delay_Recall_Intru1', 'RAVLT_ListA_Delay_Recall_Intru2'])
+
+# aggregate the delayed recall trials
+data['RAVLT_Delay_Recall_Trial'] = data[['RAVLT_ListA_Delay_Recall_Trial1',
+                                                               'RAVLT_ListA_Delay_Recall_Trial2']].sum(axis=1)
+data = data.drop(columns=['RAVLT_ListA_Delay_Recall_Trial1', 'RAVLT_ListA_Delay_Recall_Trial2'])
+
+# drop the delayed time
+data = data.drop(columns=['RAVLT_ListA_Delay_Recall_Time1', 'RAVLT_ListA_Delay_Recall_Time2',
+                          'RAVLT_ListA_RecallDelay_Trial2'])
+
+# # aggregate semantic associates
+# data['RAVLT_Semantic_Associates'] = data[['RAVLT_ListA_Semantic_Associates',
+#                                                                 'RAVLT_ListB_Semantic_Associates']].sum(axis=1)
+# data = data.drop(columns=['RAVLT_ListA_Semantic_Associates', 'RAVLT_ListB_Semantic_Associates'])
+#
+# # aggregate phonemic associates
+# data['RAVLT_Phonemic_Associates'] = data[['RAVLT_ListA_Phonemic_Associates',
+#                                                                 'RAVLT_ListB_Phonemic_Associates']].sum(axis=1)
+# data = data.drop(columns=['RAVLT_ListA_Phonemic_Associates', 'RAVLT_ListB_Phonemic_Associates'])
+
+# aggregate the pegboard data
+data['Pegboard_Avg_Time'] = data[['Pegboard_RH_Time', 'Pegboard_LH_Time']].mean(axis=1)
+data['Pegboard_Avg_Dropped'] = data[['Pegboard_RH_Dropped', 'Pegboard_LH_Dropped']].mean(axis=1)
+
+# # they are all correct, so we discard the total correct columns
+# data['Pegboard_Avg_Correct'] = data[['Pegboard_RH_Total_Correct',
+#                                                            'Pegboard_LH_Total_Correct']].mean(axis=1)
+
+data = data.drop(columns=['Pegboard_RH_Time', 'Pegboard_LH_Time', 'Pegboard_RH_Dropped',
+                                                'Pegboard_LH_Dropped'])
+
+# reverse code the new ones
+reverse_cols.extend(['RAVLT_Immed_Recall_Persev', 'RAVLT_Immed_Recall_Intrus', 'RAVLT_Delay_Recall_Persev',
+                     'RAVLT_Delay_Recall_Intrus', 'RAVLT_Semantic_Associates', 'RAVLT_Phonemic_Associates',
+                     'Pegboard_Avg_Time', 'Pegboard_Avg_Dropped'])
 
 # reverse code the variables by subtracting them from the maximum value
 for col in reverse_cols:
     if col in data.columns:
         data[col] = data[col].max() - data[col]
-    else:
-        print(f'{col} not in data')
 
-# checkers - print the max and min values of the columns
-# for col in data.columns:
-#     print(col, data[col].max(), data[col].min())
-
-# print the missing variables
-print(f'Missing variables: {missing_vars}')
+for col in median_cols:
+    if col in data.columns:
+        data[col] = abs(data[col] - data[col].median())
+        # then do the reverse coding
+        data[col] = data[col].max() - data[col]
 
 # =============================================================================
-# the following code is to prepare data for MATLAB PLS implementation
+# Transform questionnaire data for the bifactor model
 # =============================================================================
-# separate by group
-psych_pls = data[data['Group'] == 'Psychiatric']
-control_pls = data[data['Group'] == 'Control']
-
-# remove the ID and Group columns
-psych_pls = psych_pls.drop(columns=['Code', 'Group'])
-control_pls = control_pls.drop(columns=['Code', 'Group'])
-
-# separate the neuroimaging data
-psych_without_neuro = psych_pls.drop(columns=neuro_all)
-control_without_neuro = control_pls.drop(columns=neuro_all)
-
-psych_behav = psych_pls[behavior]
-control_behav = control_pls[behavior]
-
-psych_mean = psych_pls[neuro_mean]
-control_mean = control_pls[neuro_mean]
-
-psych_median = psych_pls[neuro_median]
-control_median = control_pls[neuro_median]
-
-psych_combined = psych_pls[neuro_combined]
-control_combined = control_pls[neuro_combined]
-
-psych_with_mean = pd.concat([psych_without_neuro, psych_mean], axis=1)
-control_with_mean = pd.concat([control_without_neuro, control_mean], axis=1)
-
-psych_with_median = pd.concat([psych_without_neuro, psych_median], axis=1)
-control_with_median = pd.concat([control_without_neuro, control_median], axis=1)
-
-psych_with_combined = pd.concat([psych_without_neuro, psych_combined], axis=1)
-control_with_combined = pd.concat([control_without_neuro, control_combined], axis=1)
-
-# -----------------------------------------------------------------------------
-# prepare for behavioral PLS
-# -----------------------------------------------------------------------------
-# separate behavioral data
-psychopathology = data[psychopathology]
-behavioral = data[behavior]
-neuro_mean_df = data[neuro_mean]
-neuro_combined_df = data[neuro_combined]
-iron = data[iron]
-
-# check if the column values are all the same for the behavioral data
-uniform_vars = []
-for col in behavioral.columns:
-    if len(behavioral[col].unique()) == 1:
-        # drop the column and print the column name
-        behavioral = behavioral.drop(columns=[col])
-        uniform_vars.append(col)
-        print(f'{col} dropped')
-
-print(f'Uniform variables: {uniform_vars}')
-print('=' * 50)
-
-# =============================================================================
-# With additional questionnaires data, we prepare for the bifactor model
-# =============================================================================
-
-print('Preparing for bifactor model...')
-
-
-# rename the columns
-def rename_columns(columns, cbcl_cols=True):
-    renamed_columns = []
-    for i in range(len(columns)):
-        if cbcl_cols:
-            if i < 55:
-                renamed_columns.append(f'Q{i + 1}')
-            elif i == 55:
-                renamed_columns.extend([f'Q56{chr(j)}' for j in range(97, 105)])  # Q56a to Q56h
-            else:
-                renamed_columns.append(f'Q{i + 1}') if i + 1 < (len(columns) - 6) else None
-        else:
-            renamed_columns.append(f'Q{i + 1}')
-    return renamed_columns
-
-
-def high_corr_checker(df, cutoff=0.85, checker=False):
-    # check the correlation between the questionnaire items
-    corr = df.corr()
-
-    # find the variables that are highly correlated
-    high_corr = []
-    for i in range(corr.shape[0]):
-        for j in range(i + 1, corr.shape[0]):
-            if abs(corr.iloc[i, j]) > cutoff:
-                high_corr.append((corr.index[i], corr.columns[j]))
-
-    if checker:
-        if high_corr:
-            print('Highly correlated variables after processing:')
-            for var in high_corr_checker:
-                print(var)
-        else:
-            print('No more highly correlated variables after dropping')
-
-    else:
-        # print the highly correlated variables
-        if high_corr:
-            print('Highly correlated variables:')
-            for var in high_corr:
-                print(var)
-
-        # take the mean of the highly correlated variables and drop the original variables
-        for var in high_corr:
-            df[var[0]] = ((df[var[0]] + df[var[1]]) / 2).round()
-            df = df.drop(columns=[var[1]])
-
-    return df
-
-# only select participants that are in the data
-questionnaires = questionnaires[questionnaires['Code'].isin(data['Code'])]
 
 if choice == "CBCL":
     # select only the CBCL columns
-    cbcl_cols = questionnaires.columns[questionnaires.columns.str.contains('Q')]
-    questionnaires = questionnaires[cbcl_cols]
+    cbcl_cols = data.columns[data.columns.str.contains('Q')]
+    questionnaires = data[cbcl_cols]
 
     questionnaires.columns = rename_columns(cbcl_cols)
 
@@ -288,68 +219,69 @@ if choice == "CBCL":
                 print(f'{var[0]} and {var[1]} are highly correlated, with a correlation of {corr[var[0]][var[1]]}')
 
 elif choice == "Totals":
-    questionnaires = questionnaires[questionnaires_totals['ElementName']]
-    col_to_drop = questionnaires[questionnaires.columns[(questionnaires.columns.str.contains('T_SCORE') |
-                                                         questionnaires.columns.str.contains('total') |
-                                                         questionnaires.columns.str.contains('Total') |
-                                                         questionnaires.columns.str.contains('CESD_C_Score') |
-                                                         questionnaires.columns.str.contains('_pct'))]].columns
-    questionnaires = questionnaires.drop(columns=col_to_drop)
-    print(questionnaires.columns)
+    data = data[questionnaires_totals['ElementName']]
+    col_to_drop = data[data.columns[(data.columns.str.contains('T_SCORE') |
+                                                         data.columns.str.contains('total') |
+                                                         data.columns.str.contains('Total') |
+                                                         data.columns.str.contains('CESD_C_Score') |
+                                                         data.columns.str.contains('_pct'))]].columns
+    col_to_drop = col_to_drop[col_to_drop.isin(data.columns)]
+    data = data.drop(columns=col_to_drop)
+    print(data.columns)
 
-    # check for correlation between the total scores
-    questionnaires = high_corr_checker(questionnaires)
-    corr = questionnaires.corr()
+    # # check for correlation between the total scores
+    # questionnaires = high_corr_checker(questionnaires)
+    # corr = questionnaires.corr()
 
     # standardize the data
-    print(f'Current data range: {questionnaires.max().max()} - {questionnaires.min().min()}')
-    for col in questionnaires.columns:
+    print(f'Current data range: {data.max().max()} - {data.min().min()}')
+    for col in data.columns:
         # transform the data using min-max scaling
-        questionnaires[col] = (questionnaires[col] - questionnaires[col].min()) / (questionnaires[col].max() -
-                                                                                   questionnaires[col].min())
-    print(f'Standardized data range: {questionnaires.max().max()} - {questionnaires.min().min()}')
+        data[col] = (data[col] - data[col].min()) / (data[col].max() - data[col].min())
+    print(f'Standardized data range: {data.max().max()} - {data.min().min()}')
 
 else:
-    # remove all the total scores
-    questionnaires = questionnaires.drop(columns=questionnaires_totals['ElementName'])
+    # # remove all the total scores
+    # data = data.drop(columns=questionnaires_totals['ElementName'])
 
     # remove all the text columns
     text_cols = questionnaires_dict[questionnaires_dict['ValueRange'].str.contains('Text', na=False)]['ElementName']
     text_cols = text_cols.str.replace('^CBCL_', '', regex=True)  # to standardize the column names
-    questionnaires = questionnaires.drop(columns=text_cols)
+    text_cols = text_cols[text_cols.isin(data.columns)]
+    data = data.drop(columns=text_cols)
 
     # remove all the PSES columns
-    pses_cols = questionnaires[questionnaires.columns[questionnaires.columns.str.contains('PSES')]].columns
-    questionnaires = questionnaires.drop(columns=pses_cols)
+    pses_cols = data[data.columns[data.columns.str.contains('PSES')]].columns
+    data = data.drop(columns=pses_cols)
 
     # remove all the parent evaluated SCARED columns
-    scaredp_cols = questionnaires[questionnaires.columns[questionnaires.columns.str.contains('SCARED_P')]].columns
-    scaredc_cols = questionnaires[questionnaires.columns[questionnaires.columns.str.contains('SCARED_C')]].columns
+    scaredp_cols = data[data.columns[data.columns.str.contains('SCARED_P')]].columns
+    scaredc_cols = data[data.columns[data.columns.str.contains('SCARED_C')]].columns
 
     # calculate the correlation between the parent and child SCARED columns
     scared_corr = []
     for i, j in zip(scaredp_cols, scaredc_cols):
-        corr = questionnaires[i].corr(questionnaires[j])
+        corr = data[i].corr(data[j])
         scared_corr.append((i, j, corr))
 
-    corr_mean = np.mean([corr[2] for corr in scared_corr])  # 0.35866433753391785
+    corr_mean = np.mean([corr[2] for corr in scared_corr])  # 0.35475165422112803
 
-    # remove the parent SCARED columns
-    questionnaires = questionnaires.drop(columns=scaredp_cols)
+    # # remove the parent SCARED columns
+    # questionnaires = questionnaires.drop(columns=scaredp_cols)
 
-    # reconstruct the appetite column
-    for index, row in questionnaires.iterrows():
-        if row['CDRSR_appetite_type'] == -777:
-            questionnaires.at[index, 'CDRSR_appetite'] = 0
-        elif row['CDRSR_appetite_type'] == 0:
-            questionnaires.at[index, 'CDRSR_appetite'] = 1 * (row['CDRSR_appetite'] - 1)
-        elif row['CDRSR_appetite_type'] == 1:
-            questionnaires.at[index, 'CDRSR_appetite'] = -1 * (row['CDRSR_appetite'] - 1)
-
-    questionnaires = questionnaires.drop(columns='CDRSR_appetite_type')
+    # # reconstruct the appetite column
+    # for index, row in data.iterrows():
+    #     if row['CDRSR_appetite_type'] == -777:
+    #         data.at[index, 'CDRSR_appetite'] = 0
+    #     elif row['CDRSR_appetite_type'] == 0:
+    #         data.at[index, 'CDRSR_appetite'] = 1 * (row['CDRSR_appetite'] - 1)
+    #     elif row['CDRSR_appetite_type'] == 1:
+    #         data.at[index, 'CDRSR_appetite'] = -1 * (row['CDRSR_appetite'] - 1)
+    #
+    # data = data.drop(columns='CDRSR_appetite_type')
 
     # check nan values
-    missing_qn = questionnaires.isna().sum().sort_values(ascending=False)
+    missing_qn = data.isna().sum().sort_values(ascending=False)
     missing_qn_var = missing_qn[missing_qn > 0].index
     if missing_qn_var.any():
         for col in missing_qn_var:
@@ -357,27 +289,22 @@ else:
     else:
         print('No missing values in the questionnaires data')
 
-    # now, preprocess the data for the bifactor ESEM model
-    # remove the id columns
-    questionnaires = questionnaires.drop(columns=questionnaires.columns[:5])
-    questionnaires = questionnaires.drop(columns=questionnaires.columns[-6:])
-
     # cbcl_cols = questionnaires.columns[questionnaires.columns.str.contains('Q')]
     # questionnaires = questionnaires[cbcl_cols]
 
     # if over 99% of the data contains the same value, drop the column
     uniform_vars = []
-    for col in questionnaires.columns:
-        if len(questionnaires[col].unique()) == 1:
-            questionnaires = questionnaires.drop(columns=[col])
+    for col in data.columns:
+        if len(data[col].unique()) == 1:
+            data = data.drop(columns=[col])
             uniform_vars.append(col)
             print(f'Uniform questionnaire item dropped: {col}')
 
-    # check the correlation between the questionnaire items
-    questionnaires = high_corr_checker(questionnaires)
+    # # check the correlation between the questionnaire items
+    # data = high_corr_checker(data)
 
-    # check again
-    high_corr_checker(questionnaires, checker=True)
+    # # check again
+    # high_corr_checker(data, checker=True)
 
     # # finally, standardize the data
     # print(f'Current data range: {questionnaires.max().max()} - {questionnaires.min().min()}')
@@ -390,63 +317,84 @@ else:
     # # rename the columns
     # questionnaires.columns = rename_columns(questionnaires.columns, cbcl_cols=False)
 
-    # print the column name according to column index
-    for i, col in enumerate(questionnaires.columns):
-        print(f'{i + 1}: {col}')
+    # # print the column name according to column index
+    # for i, col in enumerate(data.columns):
+    #     print(f'{i + 1}: {col}')
 
-# if __name__ == '__main__':
-#     # save cleaned data
-#     data.to_csv('./Data/cleaned_data.csv', index=False)
-#
-#     # save task PLS data
-#     psych_without_neuro.to_csv('./Data/PLS_Data/psych_without_neuro.csv', index=False)
-#     control_without_neuro.to_csv('./Data/PLS_Data/control_without_neuro.csv', index=False)
-#
-#     psych_behav.to_csv('./Data/PLS_Data/psych_behav.csv', index=False)
-#     control_behav.to_csv('./Data/PLS_Data/control_behav.csv', index=False)
-#
-#     psych_mean.to_csv('./Data/PLS_Data/psych_mean.csv', index=False)
-#     control_mean.to_csv('./Data/PLS_Data/control_mean.csv', index=False)
-#
-#     psych_median.to_csv('./Data/PLS_Data/psych_median.csv', index=False)
-#     control_median.to_csv('./Data/PLS_Data/control_median.csv', index=False)
-#
-#     psych_combined.to_csv('./Data/PLS_Data/psych_combined.csv', index=False)
-#     control_combined.to_csv('./Data/PLS_Data/control_combined.csv', index=False)
-#
-#     psych_with_mean.to_csv('./Data/PLS_Data/psych_with_mean.csv', index=False)
-#     control_with_mean.to_csv('./Data/PLS_Data/control_with_mean.csv', index=False)
-#
-#     psych_with_median.to_csv('./Data/PLS_Data/psych_with_median.csv', index=False)
-#     control_with_median.to_csv('./Data/PLS_Data/control_with_median.csv', index=False)
-#
-#     psych_with_combined.to_csv('./Data/PLS_Data/psych_with_combined.csv', index=False)
-#     control_with_combined.to_csv('./Data/PLS_Data/control_with_combined.csv', index=False)
-#
-#     # save behavioral PLS data
-#     psychopathology.to_csv('./Data/PLS_Data/psychopathology.csv', index=False)
-#     behavioral.to_csv('./Data/PLS_Data/behavioral.csv', index=False)
-#     neuro_mean_df.to_csv('./Data/PLS_Data/neuro_mean.csv', index=False)
-#     neuro_combined_df.to_csv('./Data/PLS_Data/neuro_combined.csv', index=False)
-#     iron.to_csv('./Data/PLS_Data/iron.csv', index=False)
-# #
-#     # save questionnaires data
-#     questionnaires.to_csv('./Data/CBCL_customized.csv', index=False)
-#     questionnaires.to_csv('./Data/Totals.csv', index=False)
+# # print the max and min values of the columns
+# for col in data.columns:
+#     # if the column is not a string
+#     if data[col].dtype != 'O':
+#         print(col, data[col].max(), data[col].min())
 
+# drop rows with missing values
+excluded_missing = data[data.isna().any(axis=1)]['Code']
+data = data.dropna()
+
+# check if the column values are all the same for the behavioral data
+uniform_vars = []
+for col in data.columns:
+    if len(data[col].unique()) == 1:
+        # drop the column and print the column name
+        data = data.drop(columns=[col])
+        uniform_vars.append(col)
+        print(f'{col} dropped because all values are the same')
+
+# print the missing variables
+print(f'Missing variables: {missing_vars}')
 
 # =============================================================================
-#              SGT Data Cleaning (not necessary unless needed)
+# the following code is to prepare data for MATLAB PLS implementation
 # =============================================================================
-# # SGT
-# SGT = SGT.groupby(SGT.index // 2).first()
-# # remove unnecessary columns
-# SGT = SGT.drop(columns=['Trial', 'QResp'])
-#
-# list_to_process = ['IDNum', 'Gender', 'Ethnicity', 'Race', 'Age']
-# SGT[list_to_process] = SGT[list_to_process].applymap(lambda x: ast.literal_eval(x).get('Q0', None) if x else np.nan)
-#
-# # explode data
-# SGT = SGT.explode(['React', 'Reward', 'keyResponse', 'Bank'])
+# -----------------------------------------------------------------------------
+# prepare for behavioral PLS
+# -----------------------------------------------------------------------------
+# separate behavioral data
+# first separate into males and females
+male = data[data['Sex'] == 1]
+female = data[data['Sex'] == 2]
+
+psychopathology_male = male[psychopathology]
+psychopathology_female = female[psychopathology]
+psychopathology = data[psychopathology]
+behavioral_male = male[behavior]
+behavioral_female = female[behavior]
+behavioral = data[behavior]
+neuro_male = male[neuro]
+neuro_female = female[neuro]
+neuro = data[neuro]
+myelin_male = male[myelin]
+myelin_female = female[myelin]
+myelin = data[myelin]
+QSM_male = male[QSM]
+QSM_female = female[QSM]
+QSM = data[QSM]
+iron_male = male[iron]
+iron_female = female[iron]
+iron = data[iron]
+
+if __name__ == '__main__':
+    # save cleaned data
+    data.to_csv('./Data/cleaned_data.csv', index=False)
+
+    # save behavioral PLS data
+    psychopathology_male.to_csv('./Data/PLS_Data/psychopathology_male.csv', index=False)
+    psychopathology_female.to_csv('./Data/PLS_Data/psychopathology_female.csv', index=False)
+    psychopathology.to_csv('./Data/PLS_Data/psychopathology.csv', index=False)
+    behavioral_male.to_csv('./Data/PLS_Data/behavioral_male.csv', index=False)
+    behavioral_female.to_csv('./Data/PLS_Data/behavioral_female.csv', index=False)
+    behavioral.to_csv('./Data/PLS_Data/behavioral.csv', index=False)
+    neuro_male.to_csv('./Data/PLS_Data/neuro_male.csv', index=False)
+    neuro_female.to_csv('./Data/PLS_Data/neuro_female.csv', index=False)
+    neuro.to_csv('./Data/PLS_Data/neuro.csv', index=False)
+    myelin_male.to_csv('./Data/PLS_Data/myelin_male.csv', index=False)
+    myelin_female.to_csv('./Data/PLS_Data/myelin_female.csv', index=False)
+    myelin.to_csv('./Data/PLS_Data/myelin.csv', index=False)
+    QSM_male.to_csv('./Data/PLS_Data/QSM_male.csv', index=False)
+    QSM_female.to_csv('./Data/PLS_Data/QSM_female.csv', index=False)
+    QSM.to_csv('./Data/PLS_Data/QSM.csv', index=False)
+    iron_male.to_csv('./Data/PLS_Data/iron_male.csv', index=False)
+    iron_female.to_csv('./Data/PLS_Data/iron_female.csv', index=False)
+    iron.to_csv('./Data/PLS_Data/iron.csv', index=False)
 
 print('Preprocessing done!')
