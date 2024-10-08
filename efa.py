@@ -5,11 +5,12 @@ from sklearn.decomposition import FactorAnalysis
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from factor_analyzer import FactorAnalyzer, calculate_bartlett_sphericity, calculate_kmo
-from preprocessing import psychopathology
+from preprocessing import psychopathology, behavioral
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # read cleaned data
-data = psychopathology
+data = behavioral
 var = data.columns
 
 # standardize the data
@@ -48,6 +49,17 @@ fa = FactorAnalyzer(rotation='varimax', n_factors=4)
 fa.fit(data)
 loadings = fa.loadings_
 loadings = pd.DataFrame(loadings, index=var)
+
+# Plot the loadings
+plt.figure(figsize=(25, 25))
+sns.heatmap(loadings, cmap='coolwarm', annot=True)
+# add x ticks
+plt.xticks(np.arange(0.5, 4.5, 1), ['Executive Function/Working Memory', 'CPT Performance',
+                                    'Processing Speed/Working Memory', 'Performance consistency'])
+plt.tight_layout()
+plt.savefig('./Figures/FA_behavioral_loadings.png', dpi=600)
+plt.show()
+
 
 # transform the data
 transformed_data = fa.transform(data)
