@@ -70,11 +70,11 @@ psychopathology = ['CBCL_AnxDepSCORE', 'CBCL_WthdrDepSCORE', 'CBCL_SomaCompltSCO
                    'SCARED_P_Total_Score', 'CESD_C_Score', 'CDRSR_SCORE', 'PARS_total']
 
 
-brain_volume_residual = ['Vol_Thalamus_L_resid_norm', 'Vol_Caudate_L_resid_norm', 'Vol_Putamen_L_resid_norm',
-                         'Vol_Pallidum_L_resid_norm', 'Vol_Hippocampus_L_resid_norm', 'Vol_Amygdala_L_resid_norm',
-                         'Vol_Accumbens_L_resid_norm', 'Vol_Thalamus_R_resid_norm', 'Vol_Caudate_R_resid_norm',
-                         'Vol_Putamen_R_resid_norm', 'Vol_Pallidum_R_resid_norm', 'Vol_Hippocampus_R_resid_norm',
-                         'Vol_Amygdala_R_resid_norm', 'Vol_Accumbens_R_resid_norm']
+brain_volume_residual = ['Vol_Thalamus_L_residual', 'Vol_Caudate_L_residual', 'Vol_Putamen_L_residual',
+                         'Vol_Pallidum_L_residual', 'Vol_Hippocampus_L_residual', 'Vol_Amygdala_L_residual',
+                         'Vol_Accumbens_L_residual', 'Vol_Thalamus_R_residual', 'Vol_Caudate_R_residual',
+                         'Vol_Putamen_R_residual', 'Vol_Pallidum_R_residual', 'Vol_Hippocampus_R_residual',
+                         'Vol_Amygdala_R_residual', 'Vol_Accumbens_R_residual', 'Vol_eTIV_residual']
 
 # define the variables that need to be transformed and then removed from the data
 behavior_old = ['RAVLT_ListA_Sem_Assoc_residual', 'RAVLT_ListB_Sem_Assoc_residual', 'RAVLT_ListA_Semantic_Associates',

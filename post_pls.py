@@ -8,7 +8,6 @@ from statsmodels.stats.multitest import multipletests
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import pearsonr
-from preprocessing2 import example_QSM, example_brain_volume
 from var_def import QSM_residual, iron_residual, brain_volume_residual, psychopathology_residual
 
 # add path to the PLS results
@@ -74,12 +73,12 @@ QSM_neuro_results = get_pls_results('PLS_Behav_female_brainv_QSM_lv_vals.mat',
                                             'PLS_female_brainv~QSM~iron.mat',
                                        brain_volume_male)
 
-brain_volume_iron_results = get_pls_results('PLS_Behav_male_brainv~iron_lv_vals.mat',
-                                            'PLS_Behav_male_brainv~iron.mat',
+brain_volume_iron_results = get_pls_results('PLS_Behav_female_brainv~iron_lv_vals.mat',
+                                            'PLS_Behav_female_brainv~iron.mat',
                                        iron_residual)
 
-brain_volume_QSM_results = get_pls_results('PLS_Behav_male_brainv~QSM_lv_vals.mat',
-                                            'PLS_Behav_male_brainv~QSM.mat',
+brain_volume_QSM_results = get_pls_results('PLS_Behav_female_brainv~QSM_lv_vals.mat',
+                                            'PLS_Behav_female_brainv~QSM.mat',
                                        QSM_residual)
 
 brain_volume_combined_QSM_results = get_pls_results('PLS_Behav_female_brain_volume~QSM_lv_vals.mat',
@@ -94,8 +93,8 @@ psychopathology_QSM_results = get_pls_results('PLS_Behav_female_psychopathology~
                                                 'PLS_Behav_female_psychopathology~QSM.mat',
                                               QSM_residual)
 
-psychopathology_brainv_results = get_pls_results('PLS_Behav_male_psychopathology~brainv_lv_vals.mat',
-                                                'PLS_Behav_male_psychopathology~brainv.mat',
+psychopathology_brainv_results = get_pls_results('PLS_Behav_female_psychopathology~brainv_lv_vals.mat',
+                                                'PLS_Behav_female_psychopathology~brainv.mat',
                                               brain_volume_residual)
 
 cogsummary_iron_results = get_pls_results('PLS_Behav_female_behav~iron_lv_vals.mat',
@@ -114,8 +113,8 @@ cogsummary_myelin_results = get_pls_results('PLS_Behav_cogsummary~myelin_lv_vals
                                             'PLS_Behav_cogsummary~myelin.mat',
                                             myelin_male)
 
-cogsummary_brainv_results = get_pls_results('PLS_Behav_male_behav~brainv_lv_vals.mat',
-                                            'PLS_Behav_male_behav~brainv.mat',
+cogsummary_brainv_results = get_pls_results('PLS_Behav_female_behav~brainv_lv_vals.mat',
+                                            'PLS_Behav_female_behav~brainv.mat',
                                             brain_volume_residual)
 cogsummary_brainv_results = cogsummary_brainv_results[cogsummary_brainv_results['significant'] == True]
 
