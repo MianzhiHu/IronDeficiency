@@ -10,22 +10,24 @@ from scipy.stats import zscore, pearsonr
 from statsmodels.stats.multitest import multipletests
 from var_def import (iron_residual, neuro_residual, behavior_residual, psychopathology_residual, myelin_residual,
                      QSM_residual, brain_volume_residual, iron, QSM, behavior, psychopathology, behavior_old,
-                     psychopathology_old)
+                     psychopathology_old, wm)
 from utilities import rename_columns, high_corr_checker, process_workbook
 
 
 # read xlsx file
 data = pd.read_excel('./Data/Original_Data/A&M_dataset.xlsx')
+wm_data = pd.read_excel('./Data/Original_Data/UT_WM_Integrity_Metrics_Females.xlsx')
 questionnaires_dict = pd.read_excel('./Data/Original_Data/A&M_dataset_DICTIONARY.xlsx', sheet_name='Dataset_Dictionary')
 questionnaires_totals = pd.read_excel('./Data/Original_Data/A&M_dataset_DICTIONARY.xlsx', sheet_name='Scores')
 
 # define the inclusion and exclusion criteria
 choice = "else"
-iron_inclusion = True
-QSM_inclusion = True
+iron_inclusion = False
+QSM_inclusion = False
 behavioral_inclusion = True
 psychopathology_inclusion = True
-brain_volume_inclusion = True
+brain_volume_inclusion = False
+wm_inclusion = True
 behavioral_exclusion = False
 behavioral_exclusion_list = ['Trail_PartA_time', 'Trail_PartA_error_seq', 'TrailsB_Time', 'Trail_PartB_error_seq',
                              'Trail_PartB_error_set', 'Pegboard_Avg_Time', 'Pegboard_Avg_Dropped',
@@ -40,7 +42,8 @@ variables_dict = {
     'QSM': (QSM_inclusion, QSM_residual + QSM),
     'behavioral': (behavioral_inclusion, behavior_residual + behavior),
     'psychopathology': (psychopathology_inclusion, psychopathology_residual + psychopathology),
-    'brain_volume': (brain_volume_inclusion, brain_volume_residual)
+    'brain_volume': (brain_volume_inclusion, brain_volume_residual),
+    'wm': (wm_inclusion, wm)
 }
 
 # =============================================================================
@@ -92,6 +95,7 @@ for key, (include, vars_list) in variables_dict.items():
 missing_vars = [var for var in variables_of_interest if var not in data.columns and var not in drop_cols]
 
 data = data[variables_of_interest]
+print(f'Data shape after selecting variables of interest: {data.shape}')
 
 # =============================================================================
 # Transform behavioral data
@@ -288,6 +292,12 @@ if behavioral_inclusion:
     #         print(col, data[col].max(), data[col].min())
 
 # =============================================================================
+# White matter integrity data
+# =============================================================================
+if wm_inclusion:
+    wm_data = wm_data[['Code'] + wm]
+    data = pd.merge(data, wm_data, on='Code', how='left')
+# =============================================================================
 # Back to general data cleaning
 # =============================================================================
 # reverse code the variables by subtracting them from the maximum value
@@ -302,13 +312,39 @@ for col in median_cols:
         # then do the reverse coding
         data[col] = data[col].max() - data[col]
 
-# drop rows with missing values
-excluded_missing = data[data.isna().any(axis=1)]['Code']
-data = data.dropna()
+# print the number of missing values per column
+missing = data.isna().sum().sort_values(ascending=False)
+print('Missing values per column:')
+for col, count in missing.items():
+    if count > 0:
+        print(f'{col}: {count}')
+
+# keep only psychopathology, behavioral, and wm variables
+data = data[psychopathology_residual + behavior_residual + wm + ['Code', 'Sex', 'Age']]
+
+# Remove participants with missing values in wm variables
+excluded_wm_missing = data[data[wm].isna().any(axis=1)]['Code']
+data = data[~data['Code'].isin(excluded_wm_missing)]
+print(f'Data shape after removing participants with missing WM values: {data.shape}')
+
+excluded_behavior_missing = data[data[behavior_residual].isna().any(axis=1)]['Code']
+data = data[~data['Code'].isin(excluded_behavior_missing)]
+print(f'Data shape after removing participants with missing behavioral values: {data.shape}')
+
+# excluded_psychopathology_missing = data[data[psychopathology_residual].isna().any(axis=1)]['Code']
+# data = data[~data['Code'].isin(excluded_psychopathology_missing)]
+# print(f'Data shape after removing participants with missing psychopathology values: {data.shape}')
+
+# # drop rows with missing values
+# excluded_missing = data[data.isna().any(axis=1)]['Code']
+# data = data.dropna()
+# print(f'Data shape after dropping missing values: {data.shape}')
 
 # check if the column values are all the same
 uniform_vars = []
 for col in data.columns:
+    if col == 'Sex':
+        continue
     if data[col].nunique() == 1:
         # drop the column and print the column name
         data = data.drop(columns=[col])
@@ -369,6 +405,7 @@ male = data[data['Sex'] == 1]
 male_renamed = data_renamed[data_renamed['Sex'] == 1]
 female = data[data['Sex'] == 2]
 female_renamed = data_renamed[data_renamed['Sex'] == 2]
+print(f'Data shape after cleaning: {data.shape}')
 
 # -----------------------------------------------------------------------------
 # Separate the variables into separate DataFrames
@@ -390,7 +427,8 @@ all_variables = {
     'behavioral': behavior_residual,
     'QSM': QSM_residual,
     'iron': iron_residual,
-    'brain_volume': brain_volume_residual
+    'brain_volume': brain_volume_residual,
+    'wm': wm
 }
 
 # Create the filtered variables dictionary based on inclusion flags

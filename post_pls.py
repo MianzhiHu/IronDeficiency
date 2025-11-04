@@ -8,7 +8,7 @@ from statsmodels.stats.multitest import multipletests
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import pearsonr
-from var_def import QSM_residual, iron_residual, brain_volume_residual, psychopathology_residual
+from var_def import QSM_residual, iron_residual, brain_volume_residual, psychopathology_residual, wm
 
 # add path to the PLS results
 result_dir = os.path.abspath('C:/Users/zuire/OneDrive/桌面/胡勉之/Texas A&M University/IronDeficiency/MATLAB/Result')
@@ -101,8 +101,8 @@ cogsummary_iron_results = get_pls_results('PLS_Behav_female_behav~iron_lv_vals.m
                                             'PLS_Behav_female_behav~iron.mat',
                                             iron_residual)
 
-cogsummary_QSM_results = get_pls_results('PLS_Behav_male_behav~QSM_lv_vals.mat',
-                                            'PLS_Behav_male_behav~QSM.mat',
+cogsummary_QSM_results = get_pls_results('PLS_Behav_female_behav~QSM_lv_vals.mat',
+                                            'PLS_Behav_female_behav~QSM.mat',
                                             QSM_residual)
 
 cogsummary_psychopathology_results = get_pls_results('PLS_Behav_female_behav~psychopathology_lv_vals.mat',
@@ -122,6 +122,13 @@ myelin_neuro_results = get_pls_results('PLS_Behav_myelin~neuro_lv_vals.mat',
                                         'PLS_Behav_myelin~neuro.mat',
                                        neuro_male)
 
+psychopathology_wm_results = get_pls_results('PLS_Behav_female_psychopathology~wm_full_lv_vals.mat',
+                                        'PLS_Behav_female_psychopathology~wm_full.mat',
+                                             wm)
+
+cogsummary_wm_results = get_pls_results('PLS_Behav_female_behav~wm_lv_vals.mat',
+                                        'PLS_Behav_female_behav~wm.mat',
+                                             wm)
 
 # plot the results
 sns.set_theme(style='whitegrid')
