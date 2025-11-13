@@ -8,7 +8,8 @@ neuro_residual = ['f_iron_l_Pu_mean_residual', 'f_iron_r_Pu_mean_residual', 'f_i
 QSM_residual = ['QSM_l_Pu_mean_residual', 'QSM_r_Pu_mean_residual', 'QSM_l_Cd_mean_residual',
                 'QSM_r_Cd_mean_residual', 'QSM_l_GP_mean_residual', 'QSM_r_GP_mean_residual']
 QSM = ['QSM_l_Pu_mean', 'QSM_r_Pu_mean', 'QSM_l_Cd_mean', 'QSM_r_Cd_mean', 'QSM_l_GP_mean', 'QSM_r_GP_mean']
-wm = ['FA_Splenium_by_QSM', 'FA_Splenium_by_QSM_age', 'FA_SLF_by_QSM', 'FA_SLF_by_QSM_age', 'T1w_T2w_Ratio_BA44']
+# wm = ['FA_Splenium_by_QSM', 'FA_Splenium_by_QSM_age', 'FA_SLF_by_QSM', 'FA_SLF_by_QSM_age', 'T1w_T2w_Ratio_BA44']
+wm = ['FA_Splenium_by_QSM_age', 'FA_SLF_by_QSM_age']
 
 myelin_residual = ['f_myelin_r_Pu_mean_residual', 'f_myelin_l_Pu_mean_residual', 'f_myelin_r_Cd_mean_residual',
                    'f_myelin_l_Cd_mean_residual', 'f_myelin_r_GP_mean_residual', 'f_myelin_l_GP_mean_residual']

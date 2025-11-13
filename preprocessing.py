@@ -16,7 +16,8 @@ from utilities import rename_columns, high_corr_checker, process_workbook
 
 # read xlsx file
 data = pd.read_excel('./Data/Original_Data/A&M_dataset.xlsx')
-wm_data = pd.read_excel('./Data/Original_Data/UT_WM_Integrity_Metrics_Females.xlsx')
+# wm_data = pd.read_excel('./Data/Original_Data/UT_WM_Integrity_Metrics_Females.xlsx')
+wm_data = pd.read_csv('./Data/Original_Data/FA_female_v2.csv')
 questionnaires_dict = pd.read_excel('./Data/Original_Data/A&M_dataset_DICTIONARY.xlsx', sheet_name='Dataset_Dictionary')
 questionnaires_totals = pd.read_excel('./Data/Original_Data/A&M_dataset_DICTIONARY.xlsx', sheet_name='Scores')
 
@@ -29,12 +30,18 @@ psychopathology_inclusion = True
 brain_volume_inclusion = False
 wm_inclusion = True
 behavioral_exclusion = False
+psychopathology_exclusion = False
 behavioral_exclusion_list = ['Trail_PartA_time', 'Trail_PartA_error_seq', 'TrailsB_Time', 'Trail_PartB_error_seq',
                              'Trail_PartB_error_set', 'Pegboard_Avg_Time', 'Pegboard_Avg_Dropped',
                              'Trail_PartA_time_residual', 'Trail_PartA_error_seq_residual',
                              'TrailsB_Time_residual', 'Trail_PartB_error_seq_residual',
                              'Trail_PartB_error_set_residual', 'Pegboard_Avg_Time_residual',
                              'Pegboard_Avg_Dropped_residual']
+# psychopathology_exclusion_list = ['CBCL_AnxDep_residual', 'CBCL_WthdrDep_residual', 'CBCL_SomaComplt_residual',
+#                                   'CBCL_SocProbs_residual', 'CBCL_ThtProbs_residual', 'CBCL_AttenProbs_residual',
+#                                   'CBCL_RuleBreak_residual', 'CBCL_AgresBehav_residual', 'CBCL_Activities_residual',
+#                                   'CBCL_Social_residual', 'CBCL_edu_residual', 'SCARED_P_Total_residual']
+psychopathology_exclusion_list = ['SCARED_P_Total_residual']
 
 # Define the variable lists in a dictionary with their inclusion flags
 variables_dict = {
@@ -291,10 +298,19 @@ if behavioral_inclusion:
     #     if data[col].dtype != 'O':
     #         print(col, data[col].max(), data[col].min())
 
+    if psychopathology_exclusion:
+        # drop the designated columns
+        data = data.drop(columns=psychopathology_exclusion_list)
+        # remove them from the psychopathology variable list
+        psychopathology = [var for var in psychopathology if var not in psychopathology_exclusion_list]
+        psychopathology_residual = [var for var in psychopathology_residual if var not in psychopathology_exclusion_list]
+
 # =============================================================================
 # White matter integrity data
 # =============================================================================
 if wm_inclusion:
+    # extract participant codes from wm_data
+    wm_data['Code'] = wm_data['subject'].str.extract(r'(Z\d{4})')
     wm_data = wm_data[['Code'] + wm]
     data = pd.merge(data, wm_data, on='Code', how='left')
 # =============================================================================
